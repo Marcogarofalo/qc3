@@ -48,3 +48,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+#extra
+*.py~
+__pycache__
+.ipynb_checkpoints
