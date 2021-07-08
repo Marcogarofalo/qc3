@@ -9,7 +9,7 @@ import os, sys, time, pickle
 #    matplotlib.use("TkAgg")
 #    import os, sys, time, pickle
 cwd = os.getcwd()
-import os, sys, time, pickle
+#import os, sys, time, pickle
 cwd = os.getcwd()
 sys.path.insert(0,cwd+'/F3')
 from F3 import F2_mov as F2
@@ -27,19 +27,23 @@ from scipy.optimize import fsolve
 from defns import chop
 from scipy import interpolate
 
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def kcot_2par(qk2,params):
     a0 = params[0]
     r0 = params[1]
-    return -10/a0 + r0*qk2
+    return 1/a0 + r0*qk2/2.0
     
     
-@njit(fastmath=True)
+#@njit(fastmath=True)
 def kiso_2par(Delta,params):
-    a0 = params[0]
-    r0 = params[1]
-    return 800/a0 + r0*Delta
-        
+    K0 = params[0]
+    K1 = params[1]
+    return K0 + K1*Delta
+
+#@njit(fastmath=True)
+def kiso_1par(Delta,params):
+    K0 = params[0]
+    return K0  
 
 def QC3(e, L, nnP, kcot_in, params_kcot, kiso, params_kiso ):
 
@@ -56,21 +60,47 @@ def QC3(e, L, nnP, kcot_in, params_kcot, kiso, params_kiso ):
     return Fiso  + Kiso
 
 
+def write_db_Fmat00():
+    F3mat.write_db_Fmat00()
+
 def find_sol(Estart, Eend, steps,L,nnP,kcot,params_kcot,kiso,params_kiso):
+    #start = time.time()
     energies = np.linspace(Estart, Eend,steps)
     param = []
     for i in range(steps):
         param.append((energies[i],L,nnP,kcot,params_kcot ,kiso,params_kiso))
-     
+    #print('param', param[0])
+    #print('E=',Estart,Eend)
     res = list(itertools.starmap(QC3, param))
-    print('Energies', energies)
-    print('QC3iso', res)
+    #print('Energies', energies)
+    #print('QC3iso', res)
     func = interpolate.InterpolatedUnivariateSpline(energies, res)
+    E3=scipy.optimize.fsolve(func, 0.5*(Estart+Eend) )
+    #print('Estart=',Estart,'Eend=', Eend, 'Esol=',E3)
+    #end = time.time()
+    #print('python time:', end - start, ' s')
+    write_db_Fmat00()
+    return E3
+
+
+
+#def find_sol(Estart, Eend, steps,L,nnP,kcot,params_kcot,kiso,params_kiso):
     
-    return scipy.optimize.fsolve(func, 0.5*(Estart+Eend) )
+    #func=lambda e : QC3(e ,L,nnP,kcot,params_kcot ,kiso,params_kiso)
+    
+    ##print("   bracket=[ ",Estart," ,",Eend," ] -> [",func(Estart)," , ",func(Eend),"]" )
+    #E3=scipy.optimize.root_scalar(func,method='brentq',bracket=[Estart,4], x0=0.5*(Estart+Eend), xtol=1e-2 )  #  bisect
+    ##print(" QC3 converged= ",E3.converged , "in ",E3.iterations, " iteration" ,  "result =", E3.root )
+    #if (not E3.converged):
+        #print("error not coverged")
+    
+    #return E3.root
 
 
-#L = 10.0
+def print_find_sol(Estart, Eend, steps,L,nnP,kcot,params_kcot,kiso,params_kiso):
+    print(Estart, Eend, steps,L,nnP,kcot,params_kcot,kiso,params_kiso)
+
+#L = 28.0
 #nnP = np.array([0.,0.,0.])
 #Estart = 3.0033
 #Eend = 3.0040
@@ -86,5 +116,6 @@ def find_sol(Estart, Eend, steps,L,nnP,kcot,params_kcot,kiso,params_kiso):
 
 def get_np_array(n1,n2,n3):
     return np.array([n1,n2,n3])
+
 
 #exit()

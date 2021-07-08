@@ -241,6 +241,8 @@ def int_nnk(e,L,nnk,l1,m1,l2,m2,alpha,nnP):
 # Calculate F (this is really Ftilde=F/(2*omega))
 #@jit(fastmath=True, cache=True)
 def F2KSS(e,L,nnk,l1,m1,l2,m2,alpha,nnP):
+    #print(e,L,nnk,l1,m1,l2,m2,alpha,nnP)
+    #print("computing Ftilde=F/(2*omega):", e, L, nnk,l1,m1,l2,m2,alpha, nnP )
     nk = norm(nnk)
     k = nk*2*math.pi/L
     nPk = norm(np.array(nnk)-np.array(nnP))
@@ -254,4 +256,5 @@ def F2KSS(e,L,nnk,l1,m1,l2,m2,alpha,nnP):
         SUM = sum_nnk(e, L, np.array(nnk),l1,m1,l2,m2,alpha,nnP)
         INT = int_nnk(e,L,nnk,l1,m1,l2,m2,alpha,nnP)
         C = hhk/(32*omk*math.pi**2*L*(e - omk)) #TB
+        #print("sum-int:",(SUM-INT),  "omk=",omk, "  C=",C)
         return (SUM-INT)*C
