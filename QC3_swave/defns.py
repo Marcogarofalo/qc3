@@ -509,7 +509,7 @@ def multiplicity_nnk(nnk_list, nnP):
 
 def short_nnk_list(nnk_list, nnP):
   N=len(nnk_list)
-  if N==0
+  if N==0:
     return [], [[]]
 
   nnk_list_new=[nnk_list[0]]
