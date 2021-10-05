@@ -1,4 +1,5 @@
 import math
+from pickle import FALSE
 import numpy as np
 #sqrt=np.sqrt;
 pi=np.pi
@@ -6,7 +7,7 @@ from itertools import permutations as perms
 from scipy.linalg import block_diag
 
 import sums_mov as sums
-from defns import list_nnk_nnP, shell_list_nnP, shell_nnk_list, perms_list, chop, full_matrix
+from defns import list_nnk_nnP, shell_list_nnP, shell_nnk_list, perms_list, chop, full_matrix, shell_nnk_nnP_list, multiplicity_nnk, short_nnk_list
 from group_theory_defns import Dmat
 from projections import l2_proj
 
@@ -43,6 +44,50 @@ def Fmat00(E,L,alpha,nnP,IPV=0):
   return np.diag(F_list)
 
 
+
+#@jit(fastmath=True,cache=True)
+def Fmat00_new(E,L,alpha,nnP,IPV=0):
+  nnk_list = list_nnk_nnP(E,L,nnP)
+  nnk_list1, multiplicity = multiplicity_nnk(nnk_list, nnP)
+  #print(nnk_list1, multiplicity)
+  F_list = []
+  i=0
+  for nnk in nnk_list1:
+    nk = sums.norm(nnk)
+    Pk = sums.norm(np.array(nnk)-np.array(nnP))*2*math.pi/L   # TB: added np.array()
+    k = nk*2*math.pi/L
+    hhk = sums.hh(E, k,Pk)
+    omk = sqrt(1. + k**2)
+    store_F = sums.F2KSS(E,L,np.array(nnk),0,0,0,0,alpha,np.array(nnP)) + hhk*IPV/(32*math.pi*2*omk)
+    for m in range(multiplicity[i]):
+      F_list += [store_F]
+    i+=1
+    
+#  print(F_list)
+  return np.diag(F_list)
+
+
+#@jit(fastmath=True,cache=True)
+def Fmat00_short(E,L,alpha,nnP,IPV=0):
+  nnk_list = list_nnk_nnP(E,L,nnP)
+  nnk_list1, ids = short_nnk_list(nnk_list, nnP)
+  #print(nnk_list1, ids)
+  N=len(nnk_list)
+  F_list = np.zeros((N))
+  i=0
+  for nnk in nnk_list1:
+    nk = sums.norm(nnk)
+    Pk = sums.norm(np.array(nnk)-np.array(nnP))*2*math.pi/L   # TB: added np.array()
+    k = nk*2*math.pi/L
+    hhk = sums.hh(E, k,Pk)
+    omk = sqrt(1. + k**2)
+    store_F = sums.F2KSS(E,L,np.array(nnk),0,0,0,0,alpha,np.array(nnP)) + hhk*IPV/(32*math.pi*2*omk)
+    for m in ids[i]:
+      F_list[m] = store_F
+    i+=1
+    
+#  print(F_list)
+  return np.diag(F_list)
 
 
 # Just compute l'=l=0 portion

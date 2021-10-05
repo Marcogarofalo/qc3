@@ -1,12 +1,13 @@
 import numpy as np
 sqrt=np.sqrt; pi=np.pi; conj=np.conjugate; LA=np.linalg
-from F2_mov import  Fmat00
+from F2_mov import  Fmat00, Fmat00_new, Fmat00_short
 from H_mat import Hmat00
 from defns import chop,truncate
 import projections as proj
 from numba import jit,njit
 import G_mov, K2i_mat
 import time
+from scipy.interpolate import RectBivariateSpline
 
 
 
@@ -67,7 +68,7 @@ class database_Fmat00:
             self.db = pickle.load(file)
             self.size_in=len(self.db)
             print("reading a database of dimension=",self.size_in)
-            self.db=sorted(self.db)
+            #self.db=sorted(self.db)
     
     def __init__(self):
         if(os.path.isfile(self.filename) and  os.path.getsize(self.filename) > 0 ):
@@ -135,7 +136,8 @@ class database_Fmat00_new:
                 
     def compute(self,E,L,alpha,nnP,IPV):
         print("computing new value: ")
-        return Fmat00(E,L,alpha,nnP,IPV)
+        #return Fmat00_new(E,L,alpha,nnP,IPV)
+        return Fmat00_short(E,L,alpha,nnP,IPV)
         #return E+L
     
     def write(self):
@@ -150,7 +152,7 @@ class database_Fmat00_new:
                 pickle.dump(self.E_list , file)
             with open(self.file_v, 'wb') as file:
                 pickle.dump(self.v_list , file)
-                      
+            self.size_read=self.size_now
                 
     def read(self):
         with open(self.file_nnP, 'rb') as file:
@@ -274,7 +276,8 @@ def F3mat00(E,L,alpha,nnP,kcot,IPV=0):
   #end = time.time()
   #print('time database:', end_db - start_db, ' s   time compute:', end - start,  'database size=',len(db_Fmat00.db))
 
-  Gt00 = G_mov.Gmat00_nnP(E,L,nnP)
+  #Gt00 = G_mov.Gmat00_nnP(E,L,nnP)
+  Gt00 = G_mov.Gmat00_nnP_new(E,L,nnP)
   K2it00 = K2i_mat.K2inv_mat00_nnP(E,L,nnP,kcot,IPV)
 
   Hi00 = chop(LA.inv( K2it00 + F00 + Gt00  ))

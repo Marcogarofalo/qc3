@@ -3,7 +3,7 @@ import math
 import numpy as np
 import sums_mov as sums
 import F2_mov as F2
-from defns import y2, y2real, list_nnk, list_nnk_nnP, lm_idx, chop, full_matrix, shell_nnk_list,shell_list
+from defns import y2, y2real, list_nnk, list_nnk_nnP, lm_idx, chop, full_matrix, shell_nnk_list,shell_list, multiplicity_nnk
 from numba import jit,njit
 
 @jit(nopython=True,fastmath=True) #FRL, this speeds up like 5-10%
@@ -79,7 +79,28 @@ def Gmat00_nnP(E,L,nnP):
   return chop(Gfull)
 
 
+#@jit(fastmath=True,cache=True)
+def Gmat00_nnP_new(E,L,nnP):
+  nnk_list = list_nnk_nnP(E,L,nnP)
+  N = len(nnk_list)
+#  print(nnk_list)
+#  print(list(nnk_list[0]))
 
+  Gfull = np.zeros((N,N))
+  for p in range(N):
+#    nnp = list(nnk_list[p])
+    nnp = nnk_list[p]
+    for k in range(p,N):
+#      nnk = list(nnk_list[k])
+      nnk = nnk_list[k]
+      Gfull[p,k] = G(E,L,np.array(nnp),np.array(nnk),0,0,0,0,nnP)
+        
+  for p in range(N):
+    for k in range(p):
+      Gfull[p,k]=Gfull[k,p]
+#      print(nnk, nnp, Gfull[p,k])
+
+  return chop(Gfull)
 
 # Just compute l'=l=0 portion
 #@jit(fastmath=True,cache=True)

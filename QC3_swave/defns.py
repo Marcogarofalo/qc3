@@ -1,7 +1,6 @@
 import numpy as np
 pi=np.pi; conj=np.conjugate; LA=np.linalg
 from itertools import permutations as perms
-
 from numba import jit,njit
 
 ####################################################################################
@@ -472,3 +471,70 @@ def cpx2real(cpx_mat):
 # Combine (l'm',lm) blocks into full matrix (old structure)
 def full_matrix(M00,M20,M02,M22):
   return np.vstack((np.hstack((M00,M02)),np.hstack((M20,M22))))
+
+
+
+@jit(nopython=True, fastmath=True) 
+def norm2(nnk):
+    nk=0.
+    for i in nnk:
+        nk += i**2
+    return nk
+
+
+def multiplicity_nnk(nnk_list, nnP):
+  nnk_list_new=[nnk_list[0]]
+  multiplicity=[0]
+  norm_sub_tmp=norm2(np.array(nnk_list[0])-np.array(nnP))
+  norm_tmp=norm2(np.array(nnk_list_new[0]))
+  i=0
+  for nnk in nnk_list:
+    found=False
+    norm_sub=norm2(np.array(nnk)-np.array(nnP))
+    norm1=norm2(np.array(nnk))
+    if norm_sub==norm_sub_tmp  and  norm1 == norm_tmp :    
+      found=True
+    
+    if  found :
+      multiplicity[i]+=1
+    else:
+      nnk_list_new+=[nnk]
+      multiplicity+=[1]
+      norm_sub_tmp=norm_sub
+      norm_tmp=norm1 
+      i+=1
+  return nnk_list_new, multiplicity
+
+
+
+def short_nnk_list(nnk_list, nnP):
+  N=len(nnk_list)
+  if N==0
+    return [], [[]]
+
+  nnk_list_new=[nnk_list[0]]
+  multiplicity=[[]]
+  norm_sub_tmp=[norm2(np.array(nnk_list[0])-np.array(nnP))]
+  norm_nnk_tmp=[norm2(np.array(nnk_list_new[0]))]
+  j=0
+  
+  for i in range(N):
+    found=False
+    norm_sub=norm2(np.array(nnk_list[i])-np.array(nnP))
+    norm_nnk=norm2(np.array(nnk_list[i]))
+    N_tmp=len(norm_sub_tmp)
+    for id_n in range(N_tmp):
+        if norm_sub==norm_sub_tmp[id_n]  and  norm_nnk == norm_nnk_tmp[id_n] :    
+          found=True
+          break
+      
+    
+    if  found :
+      multiplicity[id_n]+=[i]
+    else:
+      nnk_list_new+=[nnk_list[i]]
+      multiplicity+=[[i]]
+      norm_sub_tmp+=[norm_sub]
+      norm_nnk_tmp+=[norm_nnk]
+      j+=1
+  return nnk_list_new, multiplicity
