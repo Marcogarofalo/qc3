@@ -31,6 +31,8 @@ from scipy import interpolate
 def kcot_2par(qk2,params):
     a0 = params[0]
     r0 = params[1]
+    #print("calling kcot_2par",params[0],params[1])
+
     return 1/a0 + r0*qk2/2.0
     
     
@@ -45,16 +47,28 @@ def kiso_1par(Delta,params):
     K0 = params[0]
     return K0  
 
+
+def kiso_pole(Delta,params):
+    ecm2=Delta*9.0+9.0
+    
+    c = params[0]
+    MR2= params[1]
+    #print("calling kiso_pole",params[0],params[1], ecm2)
+    return -c/(ecm2-MR2)
+
 def QC3(e, L, nnP, kcot_in, params_kcot, kiso, params_kiso ):
 
     kcot=lambda qk2 : kcot_in(qk2,params_kcot)
 
     F00 = F3mat.F3mat00(e,L,0.5,nnP,kcot)
     
-    ecm = np.sqrt(e**2 - (sums.norm(nnP)*2*math.pi/L)**2 )
-    Delta = (ecm**2 -9.0)/9.0
-    Kiso = kiso(Delta, params_kiso)
+    #ecm = np.sqrt(e**2 - (sums.norm(nnP)*2*math.pi/L)**2 )
+    #Delta = (ecm**2 -9.0)/9.0
+    ecm2 = (e**2 - (sums.norm(nnP)*2*math.pi/L)**2 )
+    Delta = (ecm2**2 -9.0)/9.0
     
+    Kiso = kiso(Delta, params_kiso)
+    #print("Kiso=",Kiso)
     ones = np.ones(len(F00))
     Fiso = 1/(ones@F00@ones)
     return Fiso  + Kiso
@@ -65,6 +79,7 @@ def write_db_Fmat00():
 
 def find_sol(Estart, Eend, steps,L,nnP,kcot,params_kcot,kiso,params_kiso):
     #start = time.time()
+    
     energies = np.linspace(Estart, Eend,steps)
     param = []
     for i in range(steps):
