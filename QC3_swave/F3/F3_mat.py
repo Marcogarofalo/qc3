@@ -135,9 +135,10 @@ class database_Fmat00_new:
     
                 
     def compute(self,E,L,alpha,nnP,IPV):
-        print("computing new value: ")
+        #print("computing new value: ")
         #return Fmat00_new(E,L,alpha,nnP,IPV)
         return Fmat00_short(E,L,alpha,nnP,IPV)
+        # return Fmat00(E,L,alpha,nnP,IPV)
         #return E+L
     
     def write(self):

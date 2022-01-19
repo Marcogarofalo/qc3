@@ -83,7 +83,7 @@ def Gmat00_nnP(E,L,nnP):
 def Gmat00_nnP_new(E,L,nnP):
   nnk_list = list_nnk_nnP(E,L,nnP)
   N = len(nnk_list)
-#  print(nnk_list)
+#  print(nnk_list, E,L, nnP)
 #  print(list(nnk_list[0]))
 
   Gfull = np.zeros((N,N))
