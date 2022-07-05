@@ -135,7 +135,8 @@ class database_Fmat00_new:
     
                 
     def compute(self,E,L,alpha,nnP,IPV):
-        #print("computing new value: ")
+        # print("computing new value: ")
+        # print(self,E,L,alpha,nnP,IPV)
         #return Fmat00_new(E,L,alpha,nnP,IPV)
         return Fmat00_short(E,L,alpha,nnP,IPV)
         # return Fmat00(E,L,alpha,nnP,IPV)
@@ -144,7 +145,7 @@ class database_Fmat00_new:
     def write(self):
         #print(self.size_now,self.size_read)
         if(self.size_now>self.size_read ):
-            print("writing database")
+            # print("writing database")
             with open(self.file_nnP, 'wb') as file:
                 pickle.dump(self.nnP_list , file)
             with open(self.file_L, 'wb') as file:

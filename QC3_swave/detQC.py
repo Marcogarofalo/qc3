@@ -32,11 +32,16 @@ sys.path.insert(0, cwd+'/F3')
 # @njit(fastmath=True)
 
 
+
+
+def kcot_1par(qk2, params):
+    a0 = params[0]
+    return 1/a0 
+
 def kcot_2par(qk2, params):
     a0 = params[0]
     r0 = params[1]
     #print("calling kcot_2par",params[0],params[1])
-
     return 1/a0 + r0*qk2/2.0
 
 
@@ -61,9 +66,10 @@ def kiso_pole(Delta, params):
     r = -c/(ecm2-MR2)
     if len(params) > 2:
         r += params[2]
+        if len(params) > 3:
+            r += params[3]*ecm2
     #print("calling kiso_pole",params[0],params[1], ecm2)
     return r
-
 
 def kiso_pole_fix(Delta, params):
     ecm2 = Delta*9.0+9.0
@@ -104,6 +110,25 @@ def QC3(e, L, nnP, kcot_in, params_kcot, kiso, params_kiso):
     # print("Kiso=",Kiso)
     ones = np.ones(len(F00))
     Fiso = 1/(ones@F00@ones)
+    # print("F+K(",e,")=",Fiso,Kiso)
+    return Fiso + Kiso
+
+
+def QC3_kiso_pole(e, L, nnP, kcot_in, params_kcot, kiso, params_kiso):
+
+    #if( type(e)==type(np.ndarray([0])) ):        e=e[0]
+    def kcot(qk2): return kcot_in(qk2, params_kcot)
+
+    F00 = F3mat.F3mat00(e, L, 0.5, nnP, kcot)
+    #ecm = np.sqrt(e**2 - (sums.norm(nnP)*2*math.pi/L)**2 )
+    #Delta = (ecm**2 -9.0)/9.0
+    ecm2 = (e**2 - (sums.norm(nnP)*2*math.pi/L)**2)
+    Delta = (ecm2 - 9.0)/9.0
+
+    Kiso = kiso(Delta, params_kiso)*(ecm2-params_kiso[1])
+    # print("Kiso=",Kiso)
+    ones = np.ones(len(F00))
+    Fiso = 1/(ones@F00@ones)*(ecm2-params_kiso[1])
     # print("F+K(",e,")=",Fiso,Kiso)
     return Fiso + Kiso
 
@@ -220,23 +245,22 @@ def get_np_array(n1, n2, n3):
 
 
 def find_2sol(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso):
-    #tic1 = time.perf_counter()
     founds = 0
     #print("--------------finding two solutions-------------------")
     def func(e): return QC3(e, L, nnP, kcot, params_kcot, kiso, params_kiso)
-    # print("we are calling find_2sol n=",n," Lm=",L, "P=",params_kiso[0])
     print(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso)
     E1 = Estart
     f1 = func(E1)
     roots = []
     while(founds < n+1):
-        if (E1 > 3.2):
-            if (deltaE < 2e-6):
+        if (E1 > 3.1):
+            #if (deltaE < 2e-6):
+            if (deltaE < 1e-4):
                 print("solution not found")
+                write_db_Fmat00()
                 return 3.2
             E1 = Estart
-            # if (founds>0):
-            #    E1=roots[founds-1]
+            
             roots = []
             founds = 0
             deltaE = deltaE/5.0
@@ -245,7 +269,6 @@ def find_2sol(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso):
 
         f2 = func(E1+deltaE)
 
-        # print("iter =", iter, " F=",f1,f2, "   P=",params_kiso[0],  "E=",Estart)
         if (f1*f2 < 0):
             # physcal condition
             fin = func(E1+deltaE/2.0)
@@ -255,15 +278,12 @@ def find_2sol(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso):
             if (is_a_root):
             #if (f1 < 0 and f2 > 0):
 
-                #tic = time.perf_counter()
                 sol = scipy.optimize.root_scalar(func, method='bisect', bracket=[
                     E1, E1+deltaE], x0=(E1+0.5*deltaE), xtol=1e-8)  # bisect brentq
                 
-                #Estart = sol.root
+               
                 roots.append(sol.root)
-                #toc = time.perf_counter()
-                # print(f"brentq solver: {toc - tic:0.4f} seconds")
-                #print("finding root in [", Estart,",",Estart+deltaE,"] n=",n , "   sol=",E3)
+               
                 print("found solution ", founds, " of ", n)
                 founds += 1
 
@@ -289,6 +309,127 @@ def find_2sol(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso):
     write_db_Fmat00()
     return roots[n]
 
+def find_2sol_QC3_pole(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso):
+    founds = 0
+    # print(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso)
+    def func(e): return QC3_kiso_pole(e, L, nnP, kcot, params_kcot, kiso, params_kiso)
+    E1 = Estart
+    f1 = func(E1)
+    roots = []
+    while(founds < n+1):
+        if (E1 > 3.1):
+            if (deltaE < 1e-3):
+            #if (deltaE < 1e-4):
+                print("solution not found")
+                print(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso)
+                print("found solution ", founds, " of ", n+1)
+                write_db_Fmat00()
+                return 3.2
+            E1 = Estart
+            
+            roots = []
+            founds = 0
+            deltaE = deltaE/5.0
+            print("decreasing step size to ", deltaE, " sol founded:", founds,)
+            
+
+        f2 = func(E1+deltaE)
+
+        if (f1*f2 < 0):
+            # physcal condition
+            fin = func(E1+deltaE/2.0)
+            # if fin is not in the interval probably it is a pole not a root
+            is_a_root= f1<fin and fin<f2
+            is_a_root= is_a_root or f2<fin and fin<f1
+            if (is_a_root):
+            #if (f1 < 0 and f2 > 0):
+
+                sol = scipy.optimize.root_scalar(func, method='bisect', bracket=[E1, E1+deltaE], x0=(E1+0.5*deltaE), xtol=1e-8)  # bisect brentq               
+                roots.append(sol.root)
+                # print("found solution ", founds, " of ", n)
+                founds += 1
+            #else:
+                #print("pole founf in ",E1 , E1+deltaE/2.0, E1+deltaE,"  f=",f1,fin,f2)
+                # print("unphysical solution found")
+        elif (f1 == 0):
+            print("found exact root")
+            n += 1
+            roots.append(E1)
+            founds += 1
+        elif (f2 == 0):
+            print("found exact root")
+            n += 1
+            roots.append(E1+deltaE)
+            founds += 1
+
+        E1 = E1+deltaE
+        f1 = f2
+    #toc1 = time.perf_counter()
+    # print(f"find_2sol: {toc1 - tic1:0.4f} seconds")
+
+    write_db_Fmat00()
+    return roots[n]
+
+def find_2sol_QC3(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso):
+    founds = 0
+    # print(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso)
+    def func(e): return QC3(e, L, nnP, kcot, params_kcot, kiso, params_kiso)
+    E1 = Estart
+    f1 = func(E1)
+    roots = []
+    while(founds < n+1):
+        if (E1 > 3.1):
+            if (deltaE < 1e-3):
+            #if (deltaE < 1e-4):
+                print("solution not found")
+                print(Estart, deltaE, n, L, nnP, kcot, params_kcot, kiso, params_kiso)
+                print("found solution ", founds, " of ", n+1)
+                write_db_Fmat00()
+                return 3.2
+            E1 = Estart
+            
+            roots = []
+            founds = 0
+            deltaE = deltaE/5.0
+            print("decreasing step size to ", deltaE, " sol founded:", founds,)
+            
+
+        f2 = func(E1+deltaE)
+
+        if (f1*f2 < 0):
+            # physcal condition
+            fin = func(E1+deltaE/2.0)
+            # if fin is not in the interval probably it is a pole not a root
+            is_a_root= f1<fin and fin<f2
+            is_a_root= is_a_root or f2<fin and fin<f1
+            if (is_a_root):
+            #if (f1 < 0 and f2 > 0):
+
+                sol = scipy.optimize.root_scalar(func, method='bisect', bracket=[E1, E1+deltaE], x0=(E1+0.5*deltaE), xtol=1e-8)  # bisect brentq               
+                roots.append(sol.root)
+                # print("found solution ", founds, " of ", n)
+                founds += 1
+            #else:
+                #print("pole founf in ",E1 , E1+deltaE/2.0, E1+deltaE,"  f=",f1,fin,f2)
+                # print("unphysical solution found")
+        elif (f1 == 0):
+            print("found exact root")
+            n += 1
+            roots.append(E1)
+            founds += 1
+        elif (f2 == 0):
+            print("found exact root")
+            n += 1
+            roots.append(E1+deltaE)
+            founds += 1
+
+        E1 = E1+deltaE
+        f1 = f2
+    #toc1 = time.perf_counter()
+    # print(f"find_2sol: {toc1 - tic1:0.4f} seconds")
+
+    write_db_Fmat00()
+    return roots[n]
 
 def energy3_alt_mg(Estart, deltaEaux, n, L, mom, kcot, params_kcot, kiso, params_kiso):
     # def kcot0(p2): return model0(p2, *par0)
